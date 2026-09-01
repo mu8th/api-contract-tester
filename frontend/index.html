@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Contract Tester — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Terminal chrome header ─────────────────────── -->
+  <header class="term-chrome">
+    <div class="term-dots">
+      <span class="term-dot" style="background:#ef4444"></span>
+      <span class="term-dot" style="background:#eab308"></span>
+      <span class="term-dot" style="background:#22c55e"></span>
+    </div>
+    <div class="term-title">api-contract-tester &nbsp;/&nbsp; contract dashboard</div>
+    <div class="term-state">
+      <span class="badge"><span class="badge-dot"></span> live</span>
+    </div>
+  </header>
+
+  <!-- ── Page head ──────────────────────────────────── -->
+  <div class="page-head">
+    <span class="ghost-num">01</span>
+    <div class="head-border">
+      <p class="kicker">mu8th / developer tooling</p>
+      <h1 class="page-title">API <span class="grad">Contract</span> Tester</h1>
+      <p class="page-sub">[ spec ingestion &middot; drift detection &middot; breaking-change enforcement ]</p>
+    </div>
+  </div>
+
+  <!-- ── Live metric row (count-up) ─────────────────── -->
+  <div class="stats-row">
+    <div class="glow-card stat reveal">
+      <div class="stat-value"><span class="stat-num" id="stat-specs" data-count="0">0</span></div>
+      <div class="stat-label">Specs Ingested</div>
+    </div>
+    <div class="glow-card stat reveal">
+      <div class="stat-value"><span class="stat-num" id="stat-runs" data-count="0">0</span></div>
+      <div class="stat-label">Test Runs</div>
+    </div>
+    <div class="glow-card stat reveal">
+      <div class="stat-value"><span class="stat-num" id="stat-pass" data-count="0">0</span></div>
+      <div class="stat-label">Contracts Passed</div>
+    </div>
+    <div class="glow-card stat reveal">
+      <div class="stat-value"><span class="stat-num" id="stat-health" data-count="0">0</span><span class="stat-suffix">%</span></div>
+      <div class="stat-label">Contract Health</div>
+    </div>
+  </div>
+
+  <!-- ── Status legend ──────────────────────────────── -->
+  <div class="legend reveal">
+    <span class="legend-item"><span class="dot dot-pass"></span> pass</span>
+    <span class="legend-item"><span class="dot dot-drift"></span> drift</span>
+    <span class="legend-item"><span class="dot dot-broken"></span> broken</span>
+  </div>
+
+  <!-- ── Specs panel ────────────────────────────────── -->
+  <section class="glow-card panel reveal">
+    <div class="panel-head">
+      <span class="panel-kicker">[ specs ]</span>
+      <h2 class="panel-title">Specs Ingested</h2>
+    </div>
+    <ul id="specs-list" class="specs-list">
+      <li class="list-empty">Awaiting spec ingestion&hellip;</li>
+    </ul>
+  </section>
+
+  <!-- ── Contract tests panel ───────────────────────── -->
+  <section class="glow-card panel reveal">
+    <div class="panel-head">
+      <span class="panel-kicker">[ test runs ]</span>
+      <h2 class="panel-title">Contract Tests</h2>
+    </div>
+    <div class="table-wrap">
+      <table id="tests-table">
+        <thead>
+          <tr>
+            <th class="col-id">ID</th>
+            <th class="col-status">Status</th>
+            <th class="col-drift">Drift Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="row-empty"><td colspan="3">No contract runs recorded.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Visual diffs panel ─────────────────────────── -->
+  <section class="glow-card panel reveal">
+    <div class="panel-head">
+      <span class="panel-kicker">[ visual diffs ]</span>
+      <h2 class="panel-title">Visual Diffs</h2>
+    </div>
+    <div id="diffs-container" class="diffs">
+      <div class="diff-empty">&mdash; no drift detected &mdash;</div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span class="mono">api-contract-tester</span> &middot; contract integrity monitor
+  </footer>
+</div>
+
+<script src="dashboard.js"></script>
+<script>
+// ── Cursor-following glow border ─────────────────────
+document.querySelectorAll('.glow-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    const x = e.clientX - r.left - r.width / 2;
+    const y = e.clientY - r.top - r.height / 2;
+    const angle = Math.atan2(y, x) * 180 / Math.PI;
+    card.style.setProperty('--cursor-angle', angle + 'deg');
+  });
+});
+
+// ── Reveal on scroll ─────────────────────────────────
+const revealObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+// ── Count-up stats ───────────────────────────────────
+function animateCount(el, target, suffix = '') {
+  const dur = 1400;
+  const start = performance.now();
+  const tick = now => {
+    const p = Math.min((now - start) / dur, 1);
+    const val = Math.round(target * (1 - Math.pow(1 - p, 3)));
+    el.textContent = val + (p === 1 ? suffix : '');
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+function runCountUp() {
+  document.querySelectorAll('.stat-num[data-count]').forEach(el => {
+    animateCount(el, parseInt(el.dataset.count, 10) || 0);
+  });
+}
+const statObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      runCountUp();
+      statObserver.disconnect();
+    }
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll('.stats-row').forEach(el => statObserver.observe(el));
+
+// ── Pull live dashboard metrics (best-effort) ────────
+fetch('/api/contract/dashboard')
+  .then(r => (r.ok ? r.json() : null))
+  .then(data => {
+    if (!data) return;
+    const map = {
+      'stat-specs': data.total_specs,
+      'stat-runs': data.total_runs,
+      'stat-pass': data.total_tests_passed,
+    };
+    Object.entries(map).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el && typeof val === 'number') el.dataset.count = val;
+    });
+    const health = document.getElementById('stat-health');
+    if (health && typeof data.health_percentage === 'number') {
+      health.dataset.count = data.health_percentage;
+    }
+    runCountUp();
+  })
+  .catch(() => { /* offline: keep design defaults */ });
+
+// ── Presentation layer: dress JS-inserted data without
+//    touching the data layer (dashboard.js) ─────────────
+function statusClass(text) {
+  const t = String(text).toLowerCase();
+  if (t.includes('pass') || t === 'true') return 'chip chip-pass';
+  if (t.includes('drift') || t.includes('warn')) return 'chip chip-drift';
+  if (t.includes('broken') || t.includes('fail') || t === 'false') return 'chip chip-broken';
+  return 'chip';
+}
+
+function decorateSpec(li) {
+  if (li.classList.contains('list-empty') || li.dataset.done) return;
+  const raw = li.textContent;
+  const m = raw.match(/^(.*?)\s*\((.*)\)\s*$/);
+  li.innerHTML = m
+    ? `<span class="spec-name">${m[1]}</span><span class="chip chip-mono">${m[2]}</span>`
+    : `<span class="spec-name">${raw}</span>`;
+  li.dataset.done = '1';
+}
+
+function decorateRow(tr) {
+  if (tr.classList.contains('row-empty') || tr.dataset.done) return;
+  const tds = tr.querySelectorAll('td');
+  tds.forEach((td, i) => {
+    const txt = td.textContent;
+    if (i === 0) td.innerHTML = `<span class="mono cell-id">#${txt}</span>`;
+    else if (i === 1) td.innerHTML = `<span class="${statusClass(txt)}">${txt}</span>`;
+    else if (i === 2) td.innerHTML = `<span class="mono cell-drift">${txt}</span>`;
+  });
+  tr.dataset.done = '1';
+}
+
+function decorateDiff(div) {
+  if (div.classList.contains('diff-empty') || div.dataset.done) return;
+  const raw = div.textContent;
+  const m = raw.match(/Drift:\s*(.+?)\s*\|\s*Violations:\s*(.+)/);
+  div.innerHTML = m
+    ? `<span class="mono diff-drift">drift: ${m[1]}</span><span class="chip ${Number(m[2]) > 0 ? 'chip-drift' : 'chip-pass'}">violations: ${m[2]}</span>`
+    : `<span class="mono">${raw}</span>`;
+  div.dataset.done = '1';
+}
+
+function clearPlaceholders() {
+  const specs = document.getElementById('specs-list');
+  if (specs) {
+    if (specs.querySelectorAll('li:not(.list-empty)').length)
+      specs.querySelector('.list-empty')?.remove();
+  }
+  const tbody = document.querySelector('#tests-table tbody');
+  if (tbody) {
+    if (tbody.querySelectorAll('tr:not(.row-empty)').length)
+      tbody.querySelector('.row-empty')?.remove();
+  }
+  const diffs = document.getElementById('diffs-container');
+  if (diffs) {
+    if (diffs.querySelectorAll(':scope > div:not(.diff-empty)').length)
+      diffs.querySelector('.diff-empty')?.remove();
+  }
+}
+
+// Watch each live container; decorate nodes as dashboard.js appends them.
+const targets = [
+  { el: document.getElementById('specs-list'), fn: decorateSpec, cls: 'li' },
+  { el: document.querySelector('#tests-table tbody'), fn: decorateRow, cls: 'tr' },
+  { el: document.getElementById('diffs-container'), fn: decorateDiff, cls: 'div' },
+];
+targets.forEach(({ el, fn }) => {
+  if (!el) return;
+  const obs = new MutationObserver(() => {
+    Array.from(el.children).forEach(node => fn(node));
+    clearPlaceholders();
+  });
+  obs.observe(el, { childList: true });
+});
+</script>
+</body>
+</html>
