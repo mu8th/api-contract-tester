@@ -186,6 +186,12 @@ fetch('/api/contract/dashboard')
 
 // ── Presentation layer: dress JS-inserted data without
 //    touching the data layer (dashboard.js) ─────────────
+function escText(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
 function statusClass(text) {
   const t = String(text).toLowerCase();
   if (t.includes('pass') || t === 'true') return 'chip chip-pass';
@@ -199,8 +205,8 @@ function decorateSpec(li) {
   const raw = li.textContent;
   const m = raw.match(/^(.*?)\s*\((.*)\)\s*$/);
   li.innerHTML = m
-    ? `<span class="spec-name">${m[1]}</span><span class="chip chip-mono">${m[2]}</span>`
-    : `<span class="spec-name">${raw}</span>`;
+    ? `<span class="spec-name">${escText(m[1])}</span><span class="chip chip-mono">${escText(m[2])}</span>`
+    : `<span class="spec-name">${escText(raw)}</span>`;
   li.dataset.done = '1';
 }
 
@@ -209,9 +215,9 @@ function decorateRow(tr) {
   const tds = tr.querySelectorAll('td');
   tds.forEach((td, i) => {
     const txt = td.textContent;
-    if (i === 0) td.innerHTML = `<span class="mono cell-id">#${txt}</span>`;
-    else if (i === 1) td.innerHTML = `<span class="${statusClass(txt)}">${txt}</span>`;
-    else if (i === 2) td.innerHTML = `<span class="mono cell-drift">${txt}</span>`;
+    if (i === 0) td.innerHTML = `<span class="mono cell-id">#${escText(txt)}</span>`;
+    else if (i === 1) td.innerHTML = `<span class="${statusClass(txt)}">${escText(txt)}</span>`;
+    else if (i === 2) td.innerHTML = `<span class="mono cell-drift">${escText(txt)}</span>`;
   });
   tr.dataset.done = '1';
 }
@@ -221,8 +227,8 @@ function decorateDiff(div) {
   const raw = div.textContent;
   const m = raw.match(/Drift:\s*(.+?)\s*\|\s*Violations:\s*(.+)/);
   div.innerHTML = m
-    ? `<span class="mono diff-drift">drift: ${m[1]}</span><span class="chip ${Number(m[2]) > 0 ? 'chip-drift' : 'chip-pass'}">violations: ${m[2]}</span>`
-    : `<span class="mono">${raw}</span>`;
+    ? `<span class="mono diff-drift">drift: ${escText(m[1])}</span><span class="chip ${Number(m[2]) > 0 ? 'chip-drift' : 'chip-pass'}">violations: ${escText(m[2])}</span>`
+    : `<span class="mono">${escText(raw)}</span>`;
   div.dataset.done = '1';
 }
 

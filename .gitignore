@@ -2,6 +2,11 @@
 __pycache__/
 .env
 venv/
+.venv/
 *.db
 profiles.db
+api_contract_tester.db
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
 docker-compose.yml.tmp

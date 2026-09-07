@@ -1,48 +1,56 @@
-"""SQLAlchemy ORM for API Contract Tester."""
+"""SQLAlchemy ORM models for API Contract Tester."""
 
-from sqlalchemy import create_engine, Column, String, Text, DateTime, Integer, Boolean
-from sqlalchemy.orm import declarative_base, sessionmaker
+from __future__ import annotations
+
+import datetime
+
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    """Declarative base class for all models."""
 
 
-engine = create_engine("sqlite:///profiles.db")
-Session = sessionmaker(bind=engine)
+def _utcnow() -> datetime.datetime:
+    """Return the current timezone-aware UTC timestamp."""
+    return datetime.datetime.now(datetime.UTC)
 
 
 class Spec(Base):
-    """OpenAPI specification stored in database."""
+    """A stored OpenAPI specification document."""
 
     __tablename__ = "specs"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    title = Column(String(256), nullable=False)
-    version = Column(String(32), nullable=False)
-    content = Column(Text, nullable=False)
-    uploaded_at = Column(DateTime, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(256), nullable=False)
+    version: Mapped[str] = mapped_column(String(32), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    uploaded_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow
+    )
 
 
 class Test(Base):
-    """Contract enforcement test record."""
+    """One contract enforcement run against a live endpoint."""
 
     __tablename__ = "tests"
 
-    id: Column[int] = Column(Integer, primary_key=True, autoincrement=True)
-    spec_id: Column[int] = Column(Integer, nullable=False)
-    endpoint: Column[str] = Column(String(256), nullable=False)
-    status: Column[bool] = Column(Boolean, nullable=False)
-    severity_score: Column[float] = Column(Float, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    spec_id: Mapped[int] = mapped_column(ForeignKey("specs.id"), nullable=False)
+    endpoint: Mapped[str] = mapped_column(String(512), nullable=False)
+    status: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    severity_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class Result(Base):
-    """Test result with schema drift details."""
+    """One schema drift finding from a test run."""
 
     __tablename__ = "results"
 
-    id: Column[int] = Column(Integer, primary_key=True, autoincrement=True)
-    test_id: Column[int] = Column(Integer, nullable=False)
-    field_name: Column[str] = Column(String(256), nullable=False)
-    expected_type: Column[str] = Column(String(32), nullable=False)
-    actual_type: Column[str] = Column(String(32), nullable=False)
-    breaking_change: Column[bool] = Column(Boolean, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    test_id: Mapped[int] = mapped_column(ForeignKey("tests.id"), nullable=False)
+    field_name: Mapped[str] = mapped_column(String(512), nullable=False)
+    expected_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    actual_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    breaking_change: Mapped[bool] = mapped_column(Boolean, nullable=False)
