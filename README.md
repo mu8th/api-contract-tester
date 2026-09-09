@@ -19,15 +19,15 @@ parses and has paths              body against the declared       scores, and vi
                                     FastAPI + SQLAlchemy
 ```
 
-- **Ingest** — `POST /api/specs` accepts JSON or YAML spec text. The server
+- **Ingest**: `POST /api/specs` accepts JSON or YAML spec text. The server
   parses it before storing, so a broken spec never enters the database.
-- **Enforce** — `POST /api/tests` takes a spec id, a live endpoint URL, an HTTP
+- **Enforce**: `POST /api/tests` takes a spec id, a live endpoint URL, an HTTP
   method, and the spec path (e.g. `/users/{id}`). It resolves the operation's
   200 `application/json` schema, including local `$ref` pointers into
   `components/schemas`, converts it to JSON Schema, makes the real HTTP call,
   and validates the body with `jsonschema`. Each violation is stored as its own
   result row.
-- **Visualize** — the dashboard shows spec counts, run history with pass/fail
+- **Visualize**: the dashboard shows spec counts, run history with pass/fail
   status, drift scores, and per-test violation summaries. No canned data.
 
 ## Honest scope
