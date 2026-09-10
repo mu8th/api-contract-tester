@@ -10,3 +10,4 @@ api_contract_tester.db
 .mypy_cache/
 .pytest_cache/
 docker-compose.yml.tmp
+.coverage
