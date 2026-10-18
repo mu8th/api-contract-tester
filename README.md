@@ -1,5 +1,9 @@
 # api-contract-tester
 
+**[Try the live demo →](https://muath.online/#project-contract)** See which changes in an
+OpenAPI release break existing clients, edit the spec to re-check it, and validate a
+response body with this project's enforcer.
+
 A local **API contract enforcement tool**. Point it at an OpenAPI 3.x spec and
 a live endpoint, and it calls the endpoint, validates the JSON response against
 the schema the spec declared for that operation, and persists every run with
